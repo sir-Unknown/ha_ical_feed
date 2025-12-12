@@ -1,0 +1,63 @@
+{
+  "config": {
+    "title": "iCal feed",
+    "step": {
+      "user": {
+        "title": "Create iCal feed",
+        "description": "Select which calendars should be exposed through the feed.",
+        "data": {
+          "calendars": "Calendar",
+          "past_days": "Days in the past",
+          "future_days": "Days in the future"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Regenerate feed link",
+        "description": "Home Assistant will create a new secret for {entry}. Share the refreshed feed link with your calendar app to continue syncing."
+      }
+    },
+    "error": {
+      "no_selection": "Select a calendar."
+    },
+    "abort": {
+      "no_calendars": "No calendar entities available.",
+      "reauth_successful": "The feed link was regenerated successfully.",
+      "unknown_entry": "The configuration entry could not be found."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Feed settings",
+        "description": "Share this link with your calendar app:\n{feed_url}\nSelected calendars: {calendars}\n\nTitle rewrite: Use 'Title regex' and 'Title replacement' to capture groups and build a new title (for example, regex '^(.*) - .*' with replacement '$1' keeps everything before the dash).\n\nFiltering: Use 'Filter regex' to skip events after the title rewrite (for example, '.*\\b(cancelled|test)\\b.*' removes cancelled or test events).\n\nDiagnostics: Download the masked feed URL from Settings → System → Diagnostics if you need to share troubleshooting details.\nRepairs: If a selected calendar disappears, Home Assistant opens a repair issue so you can pick an available entity.",
+        "data": {
+          "feed_url": "Feed URL",
+          "past_days": "Days in the past",
+          "future_days": "Days in the future",
+          "title_regex": "Title regex",
+          "title_replacement": "Title replacement",
+          "filter_regex": "Filter regex",
+          "regenerate_link": "Create new feed link"
+        },
+        "data_description": {
+          "feed_url": "Copy and share this link. Enable 'Create new feed link' if you need to rotate the secret.",
+          "past_days": "How many days prior to today to include (0-365).",
+          "future_days": "How many days ahead to include (0-365).",
+          "title_regex": "Capture groups to rewrite a title, e.g. '^(.*) - .*'.",
+          "title_replacement": "Used with Title regex, e.g. '$1' keeps the first group.",
+          "filter_regex": "Skip events whose rewritten title matches, e.g. '.*\\b(cancelled|test)\\b.*'."
+        }
+      }
+    },
+    "error": {
+      "title_regex": "Enter a valid regular expression.",
+      "filter_regex": "Enter a valid regular expression."
+    }
+  },
+  "issues": {
+    "missing_calendar": {
+      "title": "Configured calendars are missing",
+      "description": "Home Assistant can no longer find all calendars configured for {entry}. Update the iCal feed options and pick available calendar entities. Missing calendars: {calendars}."
+    }
+  }
+}

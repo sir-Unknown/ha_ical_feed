@@ -1,0 +1,63 @@
+{
+  "config": {
+    "title": "iCal feed",
+    "step": {
+      "user": {
+        "title": "Nieuwe iCal feed",
+        "description": "Selecteer welke kalenders in de feed moeten worden opgenomen.",
+        "data": {
+          "calendars": "Kalender",
+          "past_days": "Dagen terug",
+          "future_days": "Dagen vooruit"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Feed-link vernieuwen",
+        "description": "Home Assistant maakt een nieuw geheim aan voor {entry}. Deel de vernieuwde feed-link met je kalender-app om te blijven synchroniseren."
+      }
+    },
+    "error": {
+      "no_selection": "Selecteer een kalender."
+    },
+    "abort": {
+      "no_calendars": "Er zijn geen kalender entiteiten beschikbaar.",
+      "reauth_successful": "De feed-link is vernieuwd.",
+      "unknown_entry": "Het configuratie-item kan niet worden gevonden."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Feedinstellingen",
+        "description": "Deel deze link met je kalender-app:\n{feed_url}\nGeselecteerde kalenders: {calendars}\n\nTitel herschrijven: gebruik 'Titel-regex' en 'Titel-vervanging' om groepen te vangen en een nieuwe titel op te bouwen (bijvoorbeeld regex '^(.*) - .*' met vervanging '$1' houdt alles voor het streepje).\n\nFilteren: gebruik 'Filter-regex' om gebeurtenissen na de titelwijziging over te slaan (bijvoorbeeld '.*\\b(geannuleerd|test)\\b.*' verwijdert geannuleerde of testitems).\n\nDiagnostiek: download de gemaskeerde feed-link via Instellingen → Systeem → Diagnostiek als je informatie wilt delen zonder het geheim te tonen.\nReparaties: wanneer een geselecteerde kalender verdwijnt, verschijnt er automatisch een reparatie-item zodat je de kalenderkeuze kunt corrigeren.",
+        "data": {
+          "feed_url": "Feed-link",
+          "past_days": "Dagen terug",
+          "future_days": "Dagen vooruit",
+          "title_regex": "Titel-regex",
+          "title_replacement": "Titel-vervanging",
+          "filter_regex": "Filter-regex",
+          "regenerate_link": "Nieuwe feed-link maken"
+        },
+        "data_description": {
+          "feed_url": "Kopieer en deel deze link. Gebruik 'Nieuwe feed-link maken' om het geheim te vernieuwen.",
+          "past_days": "Aantal dagen terug om mee te nemen (0-365).",
+          "future_days": "Aantal dagen vooruit om mee te nemen (0-365).",
+          "title_regex": "Gebruik groepen om titels te herschrijven, bijv. '^(.*) - .*'.",
+          "title_replacement": "Wordt gebruikt met Titel-regex, bijv. '$1' voor de eerste groep.",
+          "filter_regex": "Sla evenementen over waarvan de herschreven titel matcht, bijv. '.*\\b(geannuleerd|test)\\b.*'."
+        }
+      }
+    },
+    "error": {
+      "title_regex": "Vul een geldige reguliere expressie in.",
+      "filter_regex": "Vul een geldige reguliere expressie in."
+    }
+  },
+  "issues": {
+    "missing_calendar": {
+      "title": "Geselecteerde kalenders ontbreken",
+      "description": "Home Assistant kan niet langer alle voor {entry} geconfigureerde kalenders vinden. Open de iCal feed-opties en kies beschikbare kalenderentiteiten. Ontbrekende kalenders: {calendars}."
+    }
+  }
+}
