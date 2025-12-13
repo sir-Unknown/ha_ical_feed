@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import re
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -31,18 +31,17 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_CALENDARS,
-    CONF_FILTER_REGEX,
     CONF_FUTURE_DAYS,
     CONF_PAST_DAYS,
     CONF_REGENERATE_LINK,
     CONF_SECRET,
-    CONF_TITLE_REGEX,
-    CONF_TITLE_REPLACEMENT,
     DEFAULT_FUTURE_DAYS,
     DEFAULT_PAST_DAYS,
     DOMAIN,
 )
 from .util import build_feed_url, generate_secret
+
+_DATA_KEYS = (CONF_CALENDARS, CONF_PAST_DAYS, CONF_FUTURE_DAYS, CONF_SECRET)
 
 
 class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -129,7 +128,7 @@ class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
                 },
             )
 
-        new_data = dict(self._reauth_entry.data)
+        new_data = _filter_entry_data(self._reauth_entry.data)
         new_data[CONF_SECRET] = generate_secret()
         self.hass.config_entries.async_update_entry(self._reauth_entry, data=new_data)
         return self.async_abort(reason="reauth_successful")
@@ -175,67 +174,30 @@ class ICalFeedOptionsFlow(OptionsFlow):
             CONF_FUTURE_DAYS, DEFAULT_FUTURE_DAYS
         )
 
-        current_title_regex = self._config_entry.data.get(CONF_TITLE_REGEX, "")
-        current_title_replacement = self._config_entry.data.get(
-            CONF_TITLE_REPLACEMENT, ""
-        )
-        current_filter_regex = self._config_entry.data.get(CONF_FILTER_REGEX, "")
-
-        errors: dict[str, str] = {}
         if user_input is not None:
-            data = dict(self._config_entry.data)
+            data = _filter_entry_data(self._config_entry.data)
             if user_input.get(CONF_REGENERATE_LINK):
                 data[CONF_SECRET] = generate_secret()
 
             past_days = int(user_input.get(CONF_PAST_DAYS, current_past))
             future_days = int(user_input.get(CONF_FUTURE_DAYS, current_future))
-            title_regex = user_input.get(CONF_TITLE_REGEX, current_title_regex)
-            title_replacement = user_input.get(
-                CONF_TITLE_REPLACEMENT, current_title_replacement
-            )
-            filter_regex = user_input.get(CONF_FILTER_REGEX, current_filter_regex)
-            try:
-                if title_regex:
-                    re.compile(title_regex)
-            except re.error:
-                errors["title_regex"] = "invalid_regex"
-            try:
-                if filter_regex:
-                    re.compile(filter_regex)
-            except re.error:
-                errors["filter_regex"] = "invalid_regex"
 
-            if not errors:
-                data[CONF_PAST_DAYS] = past_days
-                data[CONF_FUTURE_DAYS] = future_days
-                data[CONF_TITLE_REGEX] = title_regex
-                data[CONF_TITLE_REPLACEMENT] = title_replacement
-                data[CONF_FILTER_REGEX] = filter_regex
+            data[CONF_PAST_DAYS] = past_days
+            data[CONF_FUTURE_DAYS] = future_days
 
-                self.hass.config_entries.async_update_entry(
-                    self._config_entry, data=data
-                )
-                if updated := self.hass.config_entries.async_get_entry(
-                    self._config_entry.entry_id
-                ):
-                    self._config_entry = updated
-                feed_url = build_feed_url(self.hass, self._config_entry)
-                return self.async_create_entry(title="", data={})
+            self.hass.config_entries.async_update_entry(self._config_entry, data=data)
+            if updated := self.hass.config_entries.async_get_entry(
+                self._config_entry.entry_id
+            ):
+                self._config_entry = updated
+            feed_url = build_feed_url(self.hass, self._config_entry)
+            return self.async_create_entry(title="", data={})
 
         schema = vol.Schema(
             {
                 vol.Optional("feed_url", default=feed_url): _FEED_URL_SELECTOR,
                 vol.Required(CONF_PAST_DAYS, default=current_past): _DAYS_SELECTOR,
                 vol.Required(CONF_FUTURE_DAYS, default=current_future): _DAYS_SELECTOR,
-                vol.Optional(
-                    CONF_TITLE_REGEX, default=current_title_regex
-                ): _REGEX_SELECTOR,
-                vol.Optional(
-                    CONF_TITLE_REPLACEMENT, default=current_title_replacement
-                ): _TEXT_SELECTOR,
-                vol.Optional(
-                    CONF_FILTER_REGEX, default=current_filter_regex
-                ): _REGEX_SELECTOR,
                 vol.Optional(CONF_REGENERATE_LINK, default=False): _BOOLEAN_SELECTOR,
             }
         )
@@ -250,7 +212,6 @@ class ICalFeedOptionsFlow(OptionsFlow):
             step_id="init",
             data_schema=schema,
             description_placeholders=description_placeholders,
-            errors=errors,
         )
 
 
@@ -268,6 +229,11 @@ def _build_calendar_selector(calendar_choices: dict[str, str]) -> SelectSelector
             sort=True,
         )
     )
+
+
+def _filter_entry_data(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Return only the supported config entry data keys."""
+    return {key: data[key] for key in _DATA_KEYS if key in data}
 
 
 def _format_calendar_names(hass: HomeAssistant, calendar_ids: list[str]) -> str:
@@ -291,10 +257,6 @@ _DAYS_SELECTOR = NumberSelector(
         mode=NumberSelectorMode.BOX,
     )
 )
-_REGEX_SELECTOR = TextSelector(
-    TextSelectorConfig(type=TextSelectorType.TEXT, autocomplete="off")
-)
-_TEXT_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT))
 _FEED_URL_SELECTOR = TextSelector(
     TextSelectorConfig(type=TextSelectorType.URL, read_only=True)
 )

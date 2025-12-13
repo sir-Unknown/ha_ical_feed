@@ -29,28 +29,19 @@
     "step": {
       "init": {
         "title": "Feedinstellingen",
-        "description": "Deel deze link met je kalender-app:\n{feed_url}\nGeselecteerde kalenders: {calendars}\n\nTitel herschrijven: gebruik 'Titel-regex' en 'Titel-vervanging' om groepen te vangen en een nieuwe titel op te bouwen (bijvoorbeeld regex '^(.*) - .*' met vervanging '$1' houdt alles voor het streepje).\n\nFilteren: gebruik 'Filter-regex' om gebeurtenissen na de titelwijziging over te slaan (bijvoorbeeld '.*\\b(geannuleerd|test)\\b.*' verwijdert geannuleerde of testitems).\n\nDiagnostiek: download de gemaskeerde feed-link via Instellingen → Systeem → Diagnostiek als je informatie wilt delen zonder het geheim te tonen.\nReparaties: wanneer een geselecteerde kalender verdwijnt, verschijnt er automatisch een reparatie-item zodat je de kalenderkeuze kunt corrigeren.",
+        "description": "Deel deze link met je kalender-app:\n{feed_url}\nGeselecteerde kalenders: {calendars}\n\nDiagnostiek: download de gemaskeerde feed-link via Instellingen → Systeem → Diagnostiek als je informatie wilt delen zonder het geheim te tonen.\nReparaties: wanneer een geselecteerde kalender verdwijnt, verschijnt er automatisch een reparatie-item zodat je de kalenderkeuze kunt corrigeren.",
         "data": {
           "feed_url": "Feed-link",
           "past_days": "Dagen terug",
           "future_days": "Dagen vooruit",
-          "title_regex": "Titel-regex",
-          "title_replacement": "Titel-vervanging",
-          "filter_regex": "Filter-regex",
           "regenerate_link": "Nieuwe feed-link maken"
         },
         "data_description": {
           "feed_url": "Kopieer en deel deze link. Gebruik 'Nieuwe feed-link maken' om het geheim te vernieuwen.",
           "past_days": "Aantal dagen terug om mee te nemen (0-365).",
-          "future_days": "Aantal dagen vooruit om mee te nemen (0-365).",
-          "title_regex": "Gebruik groepen om titels te herschrijven, bijv. '^(.*) - .*'.",
-          "title_replacement": "Wordt gebruikt met Titel-regex, bijv. '$1' voor de eerste groep.",
-          "filter_regex": "Sla evenementen over waarvan de herschreven titel matcht, bijv. '.*\\b(geannuleerd|test)\\b.*'."
+          "future_days": "Aantal dagen vooruit om mee te nemen (0-365)."
         }
       }
-    },
-    "error": {
-      "invalid_regex": "Vul een geldige reguliere expressie in."
     }
   },
   "issues": {

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from email.utils import format_datetime, parsedate_to_datetime
 import hashlib
+import json
 import logging
-import re
 import secrets
+from time import monotonic
 
 from aiohttp import web
 
@@ -20,12 +24,11 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CALENDARS,
-    CONF_FILTER_REGEX,
     CONF_FUTURE_DAYS,
     CONF_PAST_DAYS,
     CONF_SECRET,
-    CONF_TITLE_REGEX,
-    CONF_TITLE_REPLACEMENT,
+    DATA_CACHE,
+    DATA_ENTRIES,
     DEFAULT_FUTURE_DAYS,
     DEFAULT_PAST_DAYS,
     DOMAIN,
@@ -38,6 +41,17 @@ _LOGGER = logging.getLogger(__name__)
 ICAL_CONTENT_TYPE = "text/calendar"
 
 type CalendarEventTuple = tuple[str, calendar.CalendarEvent, str]
+
+_CACHE_TTL = 30.0
+
+
+@dataclass(slots=True)
+class _FeedCacheEntry:
+    payload: str
+    etag: str
+    last_modified: datetime
+    expires_at: float
+    config_hash: str
 
 
 class ICalFeedView(HomeAssistantView):
@@ -57,7 +71,7 @@ class ICalFeedView(HomeAssistantView):
         if not domain_data:
             raise web.HTTPNotFound
 
-        entries = domain_data.get("entries")
+        entries = domain_data.get(DATA_ENTRIES)
         if not entries:
             raise web.HTTPNotFound
 
@@ -78,12 +92,29 @@ class ICalFeedView(HomeAssistantView):
         calendars = entry.data.get(CONF_CALENDARS, [])
         past_days = entry.data.get(CONF_PAST_DAYS, DEFAULT_PAST_DAYS)
         future_days = entry.data.get(CONF_FUTURE_DAYS, DEFAULT_FUTURE_DAYS)
-        title_regex_str = entry.data.get(CONF_TITLE_REGEX, "")
-        title_replacement = entry.data.get(CONF_TITLE_REPLACEMENT, "")
-        filter_regex_str = entry.data.get(CONF_FILTER_REGEX, "")
 
-        title_regex = re.compile(title_regex_str) if title_regex_str else None
-        filter_regex = re.compile(filter_regex_str) if filter_regex_str else None
+        config_hash = _hash_config(
+            entry.title,
+            calendars,
+            past_days,
+            future_days,
+        )
+        cached = _get_cached_feed(
+            self.hass, entry.entry_id, config_hash, allow_expired=True
+        )
+        if cached is not None and cached.expires_at > monotonic():
+            response_headers = _build_response_headers(
+                cached.etag, cached.last_modified
+            )
+            if _is_not_modified(request, cached.etag, cached.last_modified):
+                return web.Response(
+                    status=web.HTTPNotModified.status_code, headers=response_headers
+                )
+            return web.Response(
+                text=cached.payload,
+                content_type=ICAL_CONTENT_TYPE,
+                headers=response_headers,
+            )
 
         ical_payload, event_count = await _async_generate_calendar(
             self.hass,
@@ -91,9 +122,6 @@ class ICalFeedView(HomeAssistantView):
             calendars,
             past_days,
             future_days,
-            title_regex,
-            title_replacement,
-            filter_regex,
         )
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
@@ -104,7 +132,33 @@ class ICalFeedView(HomeAssistantView):
             )
         log_feed_summary(_LOGGER, entry, str(request.url), event_count)
 
-        return web.Response(text=ical_payload, content_type=ICAL_CONTENT_TYPE)
+        etag = _etag_for_payload(ical_payload)
+        now = dt_util.utcnow().replace(microsecond=0)
+        last_modified = (
+            cached.last_modified if cached is not None and cached.etag == etag else now
+        )
+        _set_cached_feed(
+            self.hass,
+            entry.entry_id,
+            _FeedCacheEntry(
+                payload=ical_payload,
+                etag=etag,
+                last_modified=last_modified,
+                expires_at=monotonic() + _CACHE_TTL,
+                config_hash=config_hash,
+            ),
+        )
+
+        response_headers = _build_response_headers(etag, last_modified)
+        if _is_not_modified(request, etag, last_modified):
+            return web.Response(
+                status=web.HTTPNotModified.status_code, headers=response_headers
+            )
+        return web.Response(
+            text=ical_payload,
+            content_type=ICAL_CONTENT_TYPE,
+            headers=response_headers,
+        )
 
 
 async def _async_generate_calendar(
@@ -113,9 +167,6 @@ async def _async_generate_calendar(
     calendars: Iterable[str],
     past_days: int,
     future_days: int,
-    title_regex: re.Pattern[str] | None,
-    title_replacement: str,
-    filter_regex: re.Pattern[str] | None,
 ) -> tuple[str, int]:
     """Collect events from the selected calendars and produce an iCal payload."""
     utc_now = dt_util.utcnow()
@@ -128,21 +179,30 @@ async def _async_generate_calendar(
         calendar.DATA_COMPONENT
     )
     events: list[CalendarEventTuple] = []
-    if calendars:
-        for entity_id, entity in _iter_calendar_entities(component, calendars):
-            try:
-                calendar_events = await entity.async_get_events(
-                    hass, start_local, end_local
+    entities = list(_iter_calendar_entities(component, calendars)) if calendars else []
+    if entities:
+        results = await asyncio.gather(
+            *(
+                entity.async_get_events(hass, start_local, end_local)
+                for _, entity in entities
+            ),
+            return_exceptions=True,
+        )
+        for (entity_id, _), result in zip(entities, results, strict=True):
+            if isinstance(result, BaseException):
+                if isinstance(result, asyncio.CancelledError):
+                    raise result
+                if isinstance(result, HomeAssistantError):
+                    continue
+                _LOGGER.debug(
+                    "Unexpected error getting events for %s: %s",
+                    entity_id,
+                    result,
                 )
-            except HomeAssistantError:
                 continue
 
-            for event in calendar_events:
+            for event in result:
                 summary = getattr(event, "summary", "") or ""
-                if title_regex is not None:
-                    summary = title_regex.sub(title_replacement, summary)
-                if filter_regex is not None and summary and filter_regex.search(summary):
-                    continue
                 events.append((entity_id, event, summary))
 
     default_sort_value = utc_now
@@ -159,9 +219,7 @@ async def _async_generate_calendar(
     ]
 
     for entity_id, event, summary in events:
-        lines.extend(
-            _format_event(entity_id, event, utc_now, summary_override=summary)
-        )
+        lines.extend(_format_event(entity_id, event, utc_now, summary_override=summary))
 
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines) + "\r\n", len(events)
@@ -280,3 +338,95 @@ def _iter_calendar_entities(
         if not isinstance(entity, calendar.CalendarEntity):
             continue
         yield entity_id, entity
+
+
+def _hash_config(
+    title: str | None,
+    calendars: Iterable[str],
+    past_days: int,
+    future_days: int,
+) -> str:
+    """Return a stable hash that identifies the feed configuration."""
+    payload = json.dumps(
+        {
+            "title": title or "",
+            "calendars": sorted(calendars),
+            "past_days": past_days,
+            "future_days": future_days,
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _etag_for_payload(payload: str) -> str:
+    """Return an RFC-compatible ETag for a generated feed."""
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return f'"{digest}"'
+
+
+def _build_response_headers(etag: str, last_modified: datetime) -> dict[str, str]:
+    """Build response headers for cache validation."""
+    return {
+        "ETag": etag,
+        "Last-Modified": format_datetime(dt_util.as_utc(last_modified), usegmt=True),
+        "Cache-Control": "private, max-age=0, must-revalidate",
+    }
+
+
+def _etag_matches(header_value: str, etag: str) -> bool:
+    """Return True if the request ETag header matches the provided ETag."""
+    if not header_value:
+        return False
+    if header_value.strip() == "*":
+        return True
+    candidates = [value.strip() for value in header_value.split(",")]
+    return etag in candidates
+
+
+def _is_not_modified(request: web.Request, etag: str, last_modified: datetime) -> bool:
+    """Return True if the request indicates the client has a fresh copy."""
+    if if_none_match := request.headers.get("If-None-Match"):
+        if _etag_matches(if_none_match, etag):
+            return True
+
+    if if_modified_since := request.headers.get("If-Modified-Since"):
+        try:
+            since = parsedate_to_datetime(if_modified_since)
+        except (TypeError, ValueError):
+            return False
+        if since.tzinfo is None:
+            since = since.replace(tzinfo=dt_util.UTC)
+        return dt_util.as_utc(last_modified) <= dt_util.as_utc(since)
+
+    return False
+
+
+def _get_cached_feed(
+    hass: HomeAssistant, entry_id: str, config_hash: str, *, allow_expired: bool = False
+) -> _FeedCacheEntry | None:
+    """Return cached feed contents if still valid."""
+    domain_data = hass.data.get(DOMAIN)
+    if not domain_data:
+        return None
+    cache: dict[str, _FeedCacheEntry] = domain_data.get(DATA_CACHE, {})
+    cached = cache.get(entry_id)
+    if cached is None:
+        return None
+    if cached.config_hash != config_hash:
+        return None
+    if not allow_expired and cached.expires_at <= monotonic():
+        return None
+    return cached
+
+
+def _set_cached_feed(
+    hass: HomeAssistant, entry_id: str, cached: _FeedCacheEntry
+) -> None:
+    """Persist cached feed contents."""
+    domain_data = hass.data.get(DOMAIN)
+    if not domain_data:
+        return
+    cache = domain_data.setdefault(DATA_CACHE, {})
+    cache[entry_id] = cached

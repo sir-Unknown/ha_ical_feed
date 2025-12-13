@@ -12,12 +12,15 @@ from homeassistant.helpers.event import async_track_entity_registry_updated_even
 from homeassistant.helpers.issue_registry import IssueSeverity
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_CALENDARS, DOMAIN
+from .const import (
+    CONF_CALENDARS,
+    DATA_CACHE,
+    DATA_ENTRIES,
+    DATA_LISTENERS,
+    DATA_VIEW,
+    DOMAIN,
+)
 from .http import ICalFeedView
-
-DATA_ENTRIES = "entries"
-DATA_LISTENERS = "listeners"
-DATA_VIEW = "view_registered"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up an iCal feed entry."""
     domain_data = _async_get_domain_data(hass)
     domain_data[DATA_ENTRIES][entry.entry_id] = entry
+    domain_data[DATA_CACHE].pop(entry.entry_id, None)
     _async_register_registry_listener(hass, entry)
     _async_check_missing_calendars(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_update_entry))
@@ -45,6 +49,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     domain_data = _async_get_domain_data(hass)
     domain_data[DATA_ENTRIES].pop(entry.entry_id, None)
+    domain_data[DATA_CACHE].pop(entry.entry_id, None)
     _async_remove_registry_listener(hass, entry.entry_id)
     ir.async_delete_issue(hass, DOMAIN, _build_issue_id(entry.entry_id))
     return True
@@ -54,6 +59,7 @@ async def _update_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle updates triggered by the options flow."""
     domain_data = _async_get_domain_data(hass)
     domain_data[DATA_ENTRIES][entry.entry_id] = entry
+    domain_data[DATA_CACHE].pop(entry.entry_id, None)
     _async_register_registry_listener(hass, entry)
     _async_check_missing_calendars(hass, entry)
 
@@ -66,6 +72,7 @@ def _async_get_domain_data(hass: HomeAssistant) -> dict[str, Any]:
             DATA_ENTRIES: {},
             DATA_LISTENERS: {},
             DATA_VIEW: False,
+            DATA_CACHE: {},
         },
     )
 

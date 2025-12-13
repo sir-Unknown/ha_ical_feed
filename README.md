@@ -10,7 +10,6 @@ Custom Home Assistant integration that exposes a read-only ICS feed for configur
 
 - Serves an ICS feed on a secret path (`/ical/<secret>/<slug>.ics`) without authentication.
 - Lets you limit the time window (past/future days) that the feed exposes.
-- Supports title rewrites and filtering through regular expressions.
 - Creates diagnostics and repair issues when previously selected calendars disappear.
 
 ### Installation
@@ -41,8 +40,6 @@ Open the integration and choose **Options** to:
 
 - Copy the final feed URL (read-only field).
 - Change the number of days included in the past/future window.
-- Provide a regex plus replacement to rewrite event titles.
-- Provide a regex that drops events after the title rewrite.
 - Regenerate the secret so old URLs stop working.
 
 ### Using the feed
@@ -68,7 +65,6 @@ Each request is generated live, so updates in Home Assistant automatically reach
 
 - Biedt een ICS-feed aan op een geheim pad (`/ical/<secret>/<slug>.ics`) zonder authenticatie.
 - Laat je het tijdvenster beperken (dagen terug/vooruit).
-- Ondersteunt het herschrijven en filteren van titels via reguliere expressies.
 - Maakt een diagnostisch ZIP-bestand en reparatie-item aan wanneer kalenders verdwijnen.
 
 ### Installatie
@@ -99,8 +95,6 @@ Open de integratie en klik op **Opties** om:
 
 - De feed-link te kopiëren (alleen-lezen).
 - Het aantal dagen terug/vooruit aan te passen.
-- Een regex plus vervanging voor titelherschrijving op te geven.
-- Een regex te plaatsen die events filtert na de titelwijziging.
 - Een nieuw geheim te genereren zodat oude links ongeldig worden.
 
 ### Feed gebruiken
