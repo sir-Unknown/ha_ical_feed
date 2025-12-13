@@ -49,6 +49,7 @@ class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for the iCal feed."""
 
     VERSION = 1
+    MINOR_VERSION = 1
 
     def __init__(self) -> None:
         """Initialize the flow."""

@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 import hashlib
 import logging
 import re
+import secrets
 
 from aiohttp import web
 
@@ -60,10 +61,14 @@ class ICalFeedView(HomeAssistantView):
         if not entries:
             raise web.HTTPNotFound
 
-        entry = next(
-            (entry for entry in entries.values() if entry.data.get(CONF_SECRET) == secret),
-            None,
-        )
+        entry = None
+        for candidate in entries.values():
+            candidate_secret = candidate.data.get(CONF_SECRET)
+            if isinstance(candidate_secret, str) and secrets.compare_digest(
+                candidate_secret, secret
+            ):
+                entry = candidate
+                break
         if entry is None:
             raise web.HTTPNotFound
 
@@ -241,14 +246,20 @@ def _ensure_datetime(value: datetime | date | dict | None) -> datetime | None:
     if date_time := value.get("dateTime"):
         parsed = dt_util.parse_datetime(date_time)
         if parsed:
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
             return parsed
 
     if date_only := value.get("date"):
         parsed = dt_util.parse_datetime(date_only)
         if parsed:
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
             return parsed
         try:
-            return datetime.fromisoformat(f"{date_only}T00:00:00")
+            return datetime.fromisoformat(f"{date_only}T00:00:00").replace(
+                tzinfo=dt_util.DEFAULT_TIME_ZONE
+            )
         except ValueError:
             return None
 

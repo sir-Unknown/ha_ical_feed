@@ -50,8 +50,7 @@
       }
     },
     "error": {
-      "title_regex": "Enter a valid regular expression.",
-      "filter_regex": "Enter a valid regular expression."
+      "invalid_regex": "Enter a valid regular expression."
     }
   },
   "issues": {

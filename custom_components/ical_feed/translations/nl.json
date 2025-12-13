@@ -50,8 +50,7 @@
       }
     },
     "error": {
-      "title_regex": "Vul een geldige reguliere expressie in.",
-      "filter_regex": "Vul een geldige reguliere expressie in."
+      "invalid_regex": "Vul een geldige reguliere expressie in."
     }
   },
   "issues": {
