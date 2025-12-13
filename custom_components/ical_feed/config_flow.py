@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Self
 
 import voluptuous as vol
 
@@ -54,6 +54,12 @@ class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize the flow."""
         self._reauth_entry: ConfigEntry | None = None
 
+    def is_matching(self, other_flow: Self) -> bool:
+        """Return True if other_flow is matching this flow."""
+        if not (entry_id := self.context.get("entry_id")):
+            return False
+        return entry_id == other_flow.context.get("entry_id")
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -102,7 +108,7 @@ class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_reauth(
-        self, user_input: dict[str, Any] | None = None
+        self, _user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Start the reauthentication flow."""
         entry_id = self.context.get("entry_id")

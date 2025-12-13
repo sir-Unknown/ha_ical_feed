@@ -25,7 +25,7 @@ from .http import ICalFeedView
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
     """Set up the iCal feed namespace."""
     domain_data = _async_get_domain_data(hass)
     if not domain_data[DATA_VIEW]:
@@ -88,7 +88,7 @@ def _async_register_registry_listener(hass: HomeAssistant, entry: ConfigEntry) -
     entry_id = entry.entry_id
 
     @callback
-    def _handle_registry_event(event) -> None:
+    def _handle_registry_event(_event) -> None:
         if entry_id not in domain_data[DATA_ENTRIES]:
             return
         _async_check_missing_calendars(hass, domain_data[DATA_ENTRIES][entry_id])

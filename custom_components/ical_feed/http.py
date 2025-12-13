@@ -16,10 +16,13 @@ from time import monotonic
 from aiohttp import web
 
 from homeassistant.components import calendar
-from homeassistant.components.http import HomeAssistantView
+from homeassistant.components.calendar.const import (
+    DATA_COMPONENT as CALENDAR_DATA_COMPONENT,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_component import EntityComponent
+from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -180,7 +183,7 @@ async def _async_generate_calendar(
     end_local = dt_util.as_local(end)
 
     component: EntityComponent[calendar.CalendarEntity] | None = hass.data.get(
-        calendar.DATA_COMPONENT
+        CALENDAR_DATA_COMPONENT
     )
     events: list[CalendarEventTuple] = []
     entities = list(_iter_calendar_entities(component, calendars)) if calendars else []
