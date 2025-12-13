@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from logging import Logger
 import secrets
 
@@ -16,10 +15,8 @@ from .const import CONF_SECRET, ICAL_EXTENSION, PUBLIC_FEED_PATH
 
 
 def generate_secret() -> str:
-    """Create a 512-bit URL-safe secret used in the shared URL."""
-    raw_secret = secrets.token_bytes(64)
-    encoded = base64.urlsafe_b64encode(raw_secret).decode("ascii")
-    return encoded.rstrip("=")
+    """Create a 256-bit URL-safe secret used in the shared URL."""
+    return secrets.token_urlsafe(32)
 
 
 def build_feed_url(hass: HomeAssistant, entry: ConfigEntry) -> str:

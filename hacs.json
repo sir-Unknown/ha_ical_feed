@@ -1,0 +1,6 @@
+{
+  "name": "iCal Feed",
+  "domains": ["ical_feed"],
+  "content_in_root": false,
+  "render_readme": true
+}

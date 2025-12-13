@@ -17,4 +17,4 @@ ICAL_EXTENSION = ".ics"
 
 # Default window used to fetch events for the feed.
 DEFAULT_PAST_DAYS = 7
-DEFAULT_FUTURE_DAYS = 60
+DEFAULT_FUTURE_DAYS = 30
