@@ -29,7 +29,7 @@
     "step": {
       "init": {
         "title": "Feedinstellingen",
-        "description": "Deel deze link met je kalender-app:\n{feed_url}\nGeselecteerde kalenders: {calendars}\n\nDiagnostiek: download de gemaskeerde feed-link via Instellingen → Systeem → Diagnostiek als je informatie wilt delen zonder het geheim te tonen.\nReparaties: wanneer een geselecteerde kalender verdwijnt, verschijnt er automatisch een reparatie-item zodat je de kalenderkeuze kunt corrigeren.",
+        "description": "Deel deze link met je kalender-app:\n{feed_url}\nGeselecteerde kalenders: {calendars}",
         "data": {
           "feed_url": "Feed-link",
           "past_days": "Dagen terug",

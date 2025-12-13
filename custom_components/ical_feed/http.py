@@ -92,12 +92,14 @@ class ICalFeedView(HomeAssistantView):
         calendars = entry.data.get(CONF_CALENDARS, [])
         past_days = entry.data.get(CONF_PAST_DAYS, DEFAULT_PAST_DAYS)
         future_days = entry.data.get(CONF_FUTURE_DAYS, DEFAULT_FUTURE_DAYS)
+        time_zone = _get_time_zone_id(self.hass)
 
         config_hash = _hash_config(
             entry.title,
             calendars,
             past_days,
             future_days,
+            time_zone,
         )
         cached = _get_cached_feed(
             self.hass, entry.entry_id, config_hash, allow_expired=True
@@ -122,6 +124,7 @@ class ICalFeedView(HomeAssistantView):
             calendars,
             past_days,
             future_days,
+            time_zone,
         )
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
@@ -167,6 +170,7 @@ async def _async_generate_calendar(
     calendars: Iterable[str],
     past_days: int,
     future_days: int,
+    time_zone: str,
 ) -> tuple[str, int]:
     """Collect events from the selected calendars and produce an iCal payload."""
     utc_now = dt_util.utcnow()
@@ -216,10 +220,19 @@ async def _async_generate_calendar(
         "VERSION:2.0",
         "PRODID:-//Home Assistant iCal Feed//EN",
         f"X-WR-CALNAME:{_escape_value(title)}",
+        f"X-WR-TIMEZONE:{_escape_value(time_zone)}",
     ]
 
     for entity_id, event, summary in events:
-        lines.extend(_format_event(entity_id, event, utc_now, summary_override=summary))
+        lines.extend(
+            _format_event(
+                entity_id,
+                event,
+                utc_now,
+                time_zone,
+                summary_override=summary,
+            )
+        )
 
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines) + "\r\n", len(events)
@@ -229,6 +242,7 @@ def _format_event(
     entity_id: str,
     event: calendar.CalendarEvent,
     now: datetime,
+    time_zone: str,
     summary_override: str | None = None,
 ) -> list[str]:
     """Translate a Home Assistant calendar event into RFC5545 iCal lines."""
@@ -249,9 +263,14 @@ def _format_event(
         end_dt = dt_util.start_of_local_day(dt_util.as_local(end_dt_value))
         lines.append(f"DTSTART;VALUE=DATE:{start_dt.date().strftime('%Y%m%d')}")
         lines.append(f"DTEND;VALUE=DATE:{end_dt.date().strftime('%Y%m%d')}")
-    else:
+    elif time_zone == "UTC":
         lines.append(f"DTSTART:{_format_datetime(start_dt_value)}")
         lines.append(f"DTEND:{_format_datetime(end_dt_value)}")
+    else:
+        lines.append(
+            f"DTSTART;TZID={time_zone}:{_format_datetime_local(start_dt_value)}"
+        )
+        lines.append(f"DTEND;TZID={time_zone}:{_format_datetime_local(end_dt_value)}")
 
     lines.append(f"DTSTAMP:{_format_datetime(now)}")
     summary = (
@@ -276,6 +295,11 @@ def _format_event(
 def _format_datetime(value: datetime) -> str:
     """Format a datetime to RFC5545 UTC basic format."""
     return dt_util.as_utc(value).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _format_datetime_local(value: datetime) -> str:
+    """Format a datetime to RFC5545 local basic format."""
+    return dt_util.as_local(value).strftime("%Y%m%dT%H%M%S")
 
 
 def _escape_value(text: str) -> str:
@@ -345,6 +369,7 @@ def _hash_config(
     calendars: Iterable[str],
     past_days: int,
     future_days: int,
+    time_zone: str,
 ) -> str:
     """Return a stable hash that identifies the feed configuration."""
     payload = json.dumps(
@@ -353,11 +378,17 @@ def _hash_config(
             "calendars": sorted(calendars),
             "past_days": past_days,
             "future_days": future_days,
+            "time_zone": time_zone,
         },
         separators=(",", ":"),
         sort_keys=True,
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _get_time_zone_id(hass: HomeAssistant) -> str:
+    """Return the configured Home Assistant time zone ID."""
+    return hass.config.time_zone or "UTC"
 
 
 def _etag_for_payload(payload: str) -> str:

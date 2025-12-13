@@ -29,7 +29,7 @@
     "step": {
       "init": {
         "title": "Feed settings",
-        "description": "Share this link with your calendar app:\n{feed_url}\nSelected calendars: {calendars}\n\nDiagnostics: Download the masked feed URL from Settings → System → Diagnostics if you need to share troubleshooting details.\nRepairs: If a selected calendar disappears, Home Assistant opens a repair issue so you can pick an available entity.",
+        "description": "Share this link with your calendar app:\n{feed_url}\nSelected calendars: {calendars}",
         "data": {
           "feed_url": "Feed URL",
           "past_days": "Days in the past",
