@@ -16,9 +16,7 @@ from time import monotonic
 from aiohttp import web
 
 from homeassistant.components import calendar
-from homeassistant.components.calendar.const import (
-    DATA_COMPONENT as CALENDAR_DATA_COMPONENT,
-)
+from homeassistant.components.calendar import DATA_COMPONENT as CALENDAR_DATA_COMPONENT
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_component import EntityComponent

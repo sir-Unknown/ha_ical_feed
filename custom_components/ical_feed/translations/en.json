@@ -47,7 +47,22 @@
   "issues": {
     "missing_calendar": {
       "title": "Configured calendars are missing",
-      "description": "Home Assistant can no longer find all calendars configured for {entry}. Update the iCal feed options and pick available calendar entities. Missing calendars: {calendars}."
+      "description": "One or more calendar entities configured for {entry} can no longer be found (for example because the calendar integration was removed or the entity was renamed).\n\nEvents from these calendars will not be included in the iCal feed.\n\nTo fix this, select **Fix**, choose one or more available calendars, and submit.\n\nMissing calendars: {calendars}.",
+      "fix_flow": {
+        "abort": {
+          "no_calendars": "No calendar entities available.",
+          "unknown_entry": "The configuration entry could not be found."
+        },
+        "step": {
+          "init": {
+            "title": "Update calendars",
+            "description": "Choose the calendars that should be included in {entry}.\n\nMissing calendars: {calendars}.",
+            "data": {
+              "calendars": "Calendars"
+            }
+          }
+        }
+      }
     }
   }
 }

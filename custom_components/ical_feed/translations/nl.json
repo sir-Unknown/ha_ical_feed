@@ -47,7 +47,22 @@
   "issues": {
     "missing_calendar": {
       "title": "Geselecteerde kalenders ontbreken",
-      "description": "Home Assistant kan niet langer alle voor {entry} geconfigureerde kalenders vinden. Open de iCal feed-opties en kies beschikbare kalenderentiteiten. Ontbrekende kalenders: {calendars}."
+      "description": "Een of meer kalenderentiteiten die je voor {entry} hebt geselecteerd, kunnen niet meer worden gevonden (bijvoorbeeld omdat de kalenderintegratie is verwijderd of de entiteit is hernoemd).\n\nGebeurtenissen uit deze kalenders worden niet meegenomen in de iCal-feed.\n\nLos dit op door op **Oplossen** te klikken, één of meer beschikbare kalenders te kiezen en op te slaan.\n\nOntbrekende kalenders: {calendars}.",
+      "fix_flow": {
+        "abort": {
+          "no_calendars": "Er zijn geen kalenderentiteiten beschikbaar.",
+          "unknown_entry": "Het configuratie-item kan niet worden gevonden."
+        },
+        "step": {
+          "init": {
+            "title": "Kalenders bijwerken",
+            "description": "Kies welke kalenders in {entry} moeten worden opgenomen.\n\nOntbrekende kalenders: {calendars}.",
+            "data": {
+              "calendars": "Kalenders"
+            }
+          }
+        }
+      }
     }
   }
 }

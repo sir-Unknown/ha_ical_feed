@@ -126,6 +126,7 @@ def _async_check_missing_calendars(hass: HomeAssistant, entry: ConfigEntry) -> N
             hass,
             DOMAIN,
             issue_id,
+            data={"entry_id": entry.entry_id},
             is_fixable=True,
             issue_domain=DOMAIN,
             severity=IssueSeverity.ERROR,
