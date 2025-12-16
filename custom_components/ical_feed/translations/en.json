@@ -29,7 +29,7 @@
     "step": {
       "init": {
         "title": "Feed settings",
-        "description": "Share this link with your calendar app:\n{feed_url}\nSelected calendars: {calendars}",
+        "description": "Choose which calendars to expose, adjust the time window and then copy the feed link at the top of this form.",
         "data": {
           "feed_url": "Feed URL",
           "calendars": "Calendars",
@@ -41,7 +41,8 @@
           "feed_url": "Copy and share this link. Enable 'Create new feed link' if you need to rotate the secret.",
           "calendars": "Select the calendar entities that should be included in the feed.",
           "past_days": "How many days prior to today to include (0-365).",
-          "future_days": "How many days ahead to include (0-365)."
+          "future_days": "How many days ahead to include (0-365).",
+          "regenerate_link": "Enable this to generate a new secret when you submit the form."
         }
       }
     }

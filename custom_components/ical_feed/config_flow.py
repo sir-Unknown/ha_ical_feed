@@ -201,27 +201,26 @@ class ICalFeedOptionsFlow(OptionsFlow):
             return self.async_create_entry(title="", data={})
 
         schema_dict: dict[Any, Any] = {
-            vol.Optional("feed_url", default=feed_url): _FEED_URL_SELECTOR,
-            vol.Required(CONF_PAST_DAYS, default=current_past): _DAYS_SELECTOR,
-            vol.Required(CONF_FUTURE_DAYS, default=current_future): _DAYS_SELECTOR,
-            vol.Optional(CONF_REGENERATE_LINK, default=False): _BOOLEAN_SELECTOR,
+            vol.Optional("feed_url", default=feed_url): _FEED_URL_SELECTOR
         }
         schema_dict[
             vol.Required(CONF_CALENDARS, default=default_calendars)
         ] = _build_calendar_selector(calendar_choices, multiple=True)
+        schema_dict[
+            vol.Required(CONF_PAST_DAYS, default=current_past)
+        ] = _DAYS_SELECTOR
+        schema_dict[
+            vol.Required(CONF_FUTURE_DAYS, default=current_future)
+        ] = _DAYS_SELECTOR
+        schema_dict[
+            vol.Optional(CONF_REGENERATE_LINK, default=False)
+        ] = _BOOLEAN_SELECTOR
 
         schema = vol.Schema(schema_dict)
-
-        calendars_description = _format_calendar_names(self.hass, selected_calendars)
-        description_placeholders = {
-            "feed_url": feed_url,
-            "calendars": calendars_description,
-        }
 
         return self.async_show_form(
             step_id="init",
             data_schema=schema,
-            description_placeholders=description_placeholders,
         )
 
 
@@ -246,19 +245,6 @@ def _build_calendar_selector(
 def _filter_entry_data(data: Mapping[str, Any]) -> dict[str, Any]:
     """Return only the supported config entry data keys."""
     return {key: data[key] for key in _DATA_KEYS if key in data}
-
-
-def _format_calendar_names(hass: HomeAssistant, calendar_ids: list[str]) -> str:
-    """Return a comma separated list of configured calendar names."""
-    registry = er.async_get(hass)
-    names: list[str] = []
-    for entity_id in calendar_ids:
-        if entity := registry.async_get(entity_id):
-            name = entity.original_name or entity.name or entity.entity_id
-        else:
-            name = entity_id
-        names.append(name)
-    return ", ".join(names)
 
 
 def _get_calendar_choices(hass: HomeAssistant) -> dict[str, str]:
