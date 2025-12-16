@@ -64,7 +64,7 @@ class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the initial step created from the HA UI."""
-        calendar_choices = await self._async_get_calendar_choices()
+        calendar_choices = _get_calendar_choices(self.hass)
         if not calendar_choices:
             return self.async_abort(reason="no_calendars")
 
@@ -85,7 +85,7 @@ class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
                 return self.async_create_entry(title=calendar_name, data=data)
 
-        calendar_selector = _build_calendar_selector(calendar_choices)
+        calendar_selector = _build_calendar_selector(calendar_choices, multiple=False)
         default_calendar = next(iter(calendar_choices), "")
         data_schema = vol.Schema(
             {
@@ -139,20 +139,6 @@ class ICalFeedConfigFlow(ConfigFlow, domain=DOMAIN):
         self.hass.config_entries.async_update_entry(self._reauth_entry, data=new_data)
         return self.async_abort(reason="reauth_successful")
 
-    async def _async_get_calendar_choices(self) -> dict[str, str]:
-        """Return a mapping of calendar entity_ids and their names."""
-        registry = er.async_get(self.hass)
-        entries = (
-            entry for entry in registry.entities.values() if entry.domain == "calendar"
-        )
-        choices: dict[str, str] = {}
-        for entry in entries:
-            if entry.disabled:
-                continue
-            name = entry.original_name or entry.name or entry.entity_id
-            choices[entry.entity_id] = name
-        return choices
-
     @staticmethod
     @callback
     def async_get_options_flow(
@@ -174,7 +160,17 @@ class ICalFeedOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Show the read-only feed URL."""
         feed_url = build_feed_url(self.hass, self._config_entry)
+        calendar_choices = _get_calendar_choices(self.hass)
         selected_calendars = self._config_entry.data.get(CONF_CALENDARS, [])
+        available_defaults = [
+            entity_id
+            for entity_id in selected_calendars
+            if entity_id in calendar_choices
+        ]
+        default_calendars = (
+            available_defaults
+            or ([next(iter(calendar_choices))] if calendar_choices else [])
+        )
         current_past = self._config_entry.data.get(CONF_PAST_DAYS, DEFAULT_PAST_DAYS)
         current_future = self._config_entry.data.get(
             CONF_FUTURE_DAYS, DEFAULT_FUTURE_DAYS
@@ -190,6 +186,11 @@ class ICalFeedOptionsFlow(OptionsFlow):
 
             data[CONF_PAST_DAYS] = past_days
             data[CONF_FUTURE_DAYS] = future_days
+            if CONF_CALENDARS in user_input:
+                calendars = user_input[CONF_CALENDARS]
+                if isinstance(calendars, str):
+                    calendars = [calendars]
+                data[CONF_CALENDARS] = calendars
 
             self.hass.config_entries.async_update_entry(self._config_entry, data=data)
             if updated := self.hass.config_entries.async_get_entry(
@@ -199,14 +200,17 @@ class ICalFeedOptionsFlow(OptionsFlow):
             feed_url = build_feed_url(self.hass, self._config_entry)
             return self.async_create_entry(title="", data={})
 
-        schema = vol.Schema(
-            {
-                vol.Optional("feed_url", default=feed_url): _FEED_URL_SELECTOR,
-                vol.Required(CONF_PAST_DAYS, default=current_past): _DAYS_SELECTOR,
-                vol.Required(CONF_FUTURE_DAYS, default=current_future): _DAYS_SELECTOR,
-                vol.Optional(CONF_REGENERATE_LINK, default=False): _BOOLEAN_SELECTOR,
-            }
-        )
+        schema_dict: dict[Any, Any] = {
+            vol.Optional("feed_url", default=feed_url): _FEED_URL_SELECTOR,
+            vol.Required(CONF_PAST_DAYS, default=current_past): _DAYS_SELECTOR,
+            vol.Required(CONF_FUTURE_DAYS, default=current_future): _DAYS_SELECTOR,
+            vol.Optional(CONF_REGENERATE_LINK, default=False): _BOOLEAN_SELECTOR,
+        }
+        schema_dict[
+            vol.Required(CONF_CALENDARS, default=default_calendars)
+        ] = _build_calendar_selector(calendar_choices, multiple=True)
+
+        schema = vol.Schema(schema_dict)
 
         calendars_description = _format_calendar_names(self.hass, selected_calendars)
         description_placeholders = {
@@ -221,7 +225,9 @@ class ICalFeedOptionsFlow(OptionsFlow):
         )
 
 
-def _build_calendar_selector(calendar_choices: dict[str, str]) -> SelectSelector:
+def _build_calendar_selector(
+    calendar_choices: dict[str, str], *, multiple: bool
+) -> SelectSelector:
     """Generate a dropdown selector for calendar choices."""
     options = [
         SelectOptionDict(value=entity_id, label=name)
@@ -230,7 +236,7 @@ def _build_calendar_selector(calendar_choices: dict[str, str]) -> SelectSelector
     return SelectSelector(
         SelectSelectorConfig(
             options=options,
-            multiple=False,
+            multiple=multiple,
             mode=SelectSelectorMode.DROPDOWN,
             sort=True,
         )
@@ -253,6 +259,18 @@ def _format_calendar_names(hass: HomeAssistant, calendar_ids: list[str]) -> str:
             name = entity_id
         names.append(name)
     return ", ".join(names)
+
+
+def _get_calendar_choices(hass: HomeAssistant) -> dict[str, str]:
+    """Return a mapping of calendar entity_ids and their names."""
+    registry = er.async_get(hass)
+    choices: dict[str, str] = {}
+    for entry in registry.entities.values():
+        if entry.domain != "calendar" or entry.disabled:
+            continue
+        name = entry.original_name or entry.name or entry.entity_id
+        choices[entry.entity_id] = name
+    return choices
 
 
 _DAYS_SELECTOR = NumberSelector(

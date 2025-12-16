@@ -32,12 +32,14 @@
         "description": "Deel deze link met je kalender-app:\n{feed_url}\nGeselecteerde kalenders: {calendars}",
         "data": {
           "feed_url": "Feed-link",
+          "calendars": "Kalenders",
           "past_days": "Dagen terug",
           "future_days": "Dagen vooruit",
           "regenerate_link": "Nieuwe feed-link maken"
         },
         "data_description": {
           "feed_url": "Kopieer en deel deze link. Gebruik 'Nieuwe feed-link maken' om het geheim te vernieuwen.",
+          "calendars": "Selecteer welke kalenderentiteiten in de feed moeten worden opgenomen.",
           "past_days": "Aantal dagen terug om mee te nemen (0-365).",
           "future_days": "Aantal dagen vooruit om mee te nemen (0-365)."
         }

@@ -32,12 +32,14 @@
         "description": "Share this link with your calendar app:\n{feed_url}\nSelected calendars: {calendars}",
         "data": {
           "feed_url": "Feed URL",
+          "calendars": "Calendars",
           "past_days": "Days in the past",
           "future_days": "Days in the future",
           "regenerate_link": "Create new feed link"
         },
         "data_description": {
           "feed_url": "Copy and share this link. Enable 'Create new feed link' if you need to rotate the secret.",
+          "calendars": "Select the calendar entities that should be included in the feed.",
           "past_days": "How many days prior to today to include (0-365).",
           "future_days": "How many days ahead to include (0-365)."
         }

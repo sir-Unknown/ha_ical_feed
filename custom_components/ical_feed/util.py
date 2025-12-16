@@ -9,7 +9,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import network
-from homeassistant.util import slugify
 
 from .const import CONF_SECRET, ICAL_EXTENSION, PUBLIC_FEED_PATH
 
@@ -46,12 +45,8 @@ def _get_base_url(hass: HomeAssistant) -> str:
 
 
 def get_feed_slug(entry: ConfigEntry) -> str:
-    """Return a URL-safe slug for the feed title."""
-    title = entry.title or "ical_feed"
-    slug = slugify(title)
-    if not slug or slug == "unknown":
-        return entry.entry_id
-    return slug
+    """Return a generic slug for the feed path."""
+    return "feed"
 
 
 def mask_feed_url(url: str) -> str:
