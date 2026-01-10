@@ -56,6 +56,9 @@
           "no_calendars": "Er zijn geen kalenderentiteiten beschikbaar.",
           "unknown_entry": "Het configuratie-item kan niet worden gevonden."
         },
+        "error": {
+          "no_selection": "[%key:component::ical_feed::config::error::no_selection%]"
+        },
         "step": {
           "init": {
             "title": "Kalenders bijwerken",

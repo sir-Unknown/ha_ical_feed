@@ -52,15 +52,19 @@ class MissingCalendarFixFlow(RepairsFlow):
             {vol.Required(CONF_CALENDARS, default=default_calendars): selector}
         )
 
+        errors: dict[str, str] = {}
         if user_input is not None:
-            calendars = user_input[CONF_CALENDARS]
-            if isinstance(calendars, str):
-                calendars = [calendars]
+            calendars = user_input.get(CONF_CALENDARS)
+            if not calendars:
+                errors["base"] = "no_selection"
+            else:
+                if isinstance(calendars, str):
+                    calendars = [calendars]
 
-            updated_data = dict(entry.data)
-            updated_data[CONF_CALENDARS] = calendars
-            self.hass.config_entries.async_update_entry(entry, data=updated_data)
-            return self.async_create_entry(data={})
+                updated_data = dict(entry.data)
+                updated_data[CONF_CALENDARS] = calendars
+                self.hass.config_entries.async_update_entry(entry, data=updated_data)
+                return self.async_create_entry(data={})
 
         description_placeholders = None
         issue_registry = ir.async_get(self.hass)
@@ -71,6 +75,7 @@ class MissingCalendarFixFlow(RepairsFlow):
             step_id="init",
             data_schema=data_schema,
             description_placeholders=description_placeholders,
+            errors=errors,
         )
 
 

@@ -56,6 +56,9 @@
           "no_calendars": "No calendar entities available.",
           "unknown_entry": "The configuration entry could not be found."
         },
+        "error": {
+          "no_selection": "[%key:component::ical_feed::config::error::no_selection%]"
+        },
         "step": {
           "init": {
             "title": "Update calendars",
